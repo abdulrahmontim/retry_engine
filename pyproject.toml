@@ -8,6 +8,17 @@ dependencies = [
     "aiosqlite>=0.22.1",
     "fastapi[standard]>=0.136.3",
     "httpx>=0.28.1",
+    "requests>=2.34.2",
     "sqlalchemy>=2.0.50",
     "uuid7>=0.1.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "pytest-mock>=3.15.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

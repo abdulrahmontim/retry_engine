@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Response
 from app.database import get_db
 from app.schemas import RequestCreate, RequestResponse, RequestDetail
 from app.services import RequestService
@@ -44,3 +44,19 @@ async def list_requests(
     queries = await RequestService.list_requests(status, db)
     
     return queries
+
+
+
+mock_attempt_counter = 0
+@router.get("/mock-target")
+async def mock_target():
+    global mock_attempt_counter
+    mock_attempt_counter += 1
+    
+    # 500 failure
+    if mock_attempt_counter <= 3:
+        return Response(content="Simulated Server Overload", status_code=500)
+    
+    # 200
+    mock_attempt_counter = 0 
+    return {"message": "Success on attempt 4!"}
