@@ -24,7 +24,10 @@ curl -X POST http://127.0.0.1:8000/request \
 # Get status & history
 curl -X GET http://127.0.0.1:8000/requests/{id}
 
-# Filter by status
+# Filter by status: pending | retrying | completed | failed
+curl -X GET "http://127.0.0.1:8000/requests?status=pending"
+curl -X GET "http://127.0.0.1:8000/requests?status=retrying"
+curl -X GET "http://127.0.0.1:8000/requests?status=completed"
 curl -X GET "http://127.0.0.1:8000/requests?status=failed"
 ```
 
@@ -64,6 +67,7 @@ curl -X GET "http://127.0.0.1:8000/requests?status=failed"
       │
       └─► [ 4xx Error ] ───► Mark FAILED
                              (Dead-letter)
+```
 
 ## Backoff & Jitter
 
@@ -77,7 +81,7 @@ Doubles wait time after each failure (1s → 2s → 4s → 8s) so that the serve
 ## GET /requests/:id
 
 - Screenshot: ![Request by id image](image.png)
-- - Demo video: _[Demo Link](https://youtu.be/uUlvNG5tTCc)_
+- Demo video: _[Demo Link](https://youtu.be/uUlvNG5tTCc)_
 
 
 ## Reflection
