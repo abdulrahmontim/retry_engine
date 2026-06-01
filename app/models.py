@@ -57,6 +57,7 @@ class AttemptHistory(Base):
 
     attemptNumber = Column(Integer, nullable=False)
     executedAt = Column(DateTime, default=_now)
+    status = Column(String, nullable=True)
     error = Column(Text, nullable=True)
     result = Column(Text, nullable=True)
     

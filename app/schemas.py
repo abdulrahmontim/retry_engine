@@ -22,6 +22,7 @@ class RequestResponse(BaseModel):
 class AttemptHistory(BaseModel):
     attemptNumber: int
     executedAt: datetime
+    status: Optional[str] = None
     error: Optional[str] = None
     result: Optional[str] = None
 
