@@ -17,7 +17,7 @@ async def create_request(
     payload: RequestCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    req_job = await RequestService.create_request(db, payload)
+    req_job = await RequestService.create_request(db=db, payload=payload)
     
     return {
         "id": req_job.id,

@@ -31,7 +31,7 @@ class RequestService:
     
     @staticmethod
     async def get_request(req_id: UUID, db: AsyncSession):
-        stmt = select(RequestModel).options(selectinload(RequestModel.attempts)).where(RequestModel.id == req_id)
+        stmt = select(RequestModel).options(selectinload(RequestModel.attempts)).where(RequestModel.id == str(req_id))
         result = await db.execute(stmt)
 
         req_job = result.scalar_one_or_none()
