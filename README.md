@@ -68,6 +68,7 @@ flowchart TD
     Worker -->|200 OK: Mark COMPLETED| DB
     Worker -->|5xx/Timeout: Calc Backoff+Jitter \n Update nextRetryAt| DB
     Worker -->|4xx or MaxRetries: Mark FAILED| DB
+```
 
 ## Backoff & Jitter
 
