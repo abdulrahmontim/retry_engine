@@ -30,45 +30,40 @@ curl -X GET "http://127.0.0.1:8000/requests?status=failed"
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    Client([Client])
-
-    subgraph FastAPI [Synchronous Web Server]
-        RoutePost[POST /request]
-        RouteGetId[GET /requests/:id]
-        RouteGetStat[GET /requests?status=...]
-    end
-
-    subgraph Storage [Persistence]
-        DB[(SQLite Database)]
-    end
-
-    subgraph Background [Asynchronous Engine]
-        Worker{Worker Loop \n Wakes ~500ms}
-        ExtAPI[External API]
-    end
-
-    %% Client Interactions
-    Client -->|1. Submit Job| RoutePost
-    Client -->|Check Status & History| RouteGetId
-    Client -->|List by Status| RouteGetStat
-
-    %% API to Database
-    RoutePost -->|Save PENDING state| DB
-    RouteGetId -->|Read state & attempts| DB
-    RouteGetStat -->|Read filtered rows| DB
-
-    %% Worker Flow
-    Worker -.->|2. Poll due rows| DB
-    Worker -->|3. Execute HTTP Call| ExtAPI
-    ExtAPI -->|4. Response| Worker
-
-    %% Worker Updates Database
-    Worker -->|200 OK: Mark COMPLETED| DB
-    Worker -->|5xx/Timeout: Calc Backoff+Jitter \n Update nextRetryAt| DB
-    Worker -->|4xx or MaxRetries: Mark FAILED| DB
-```
+```text
+┌────────────┐
+│   Client   │
+└─────┬──────┘
+      │ 1. POST /request (Submit Job)
+      │    GET /requests (Check Status)
+      ▼
+┌──────────────────┐
+│  FastAPI Router  │
+└─────┬────────────┘
+      │ 2. Save/Read Job State (PENDING)
+      ▼
+┌──────────────────────────────────────────────┐
+│               SQLite Database                │
+└─────┬─────────────────────────────────▲──────┘
+      │ 3. Polls due rows               │
+      │    (pending/retrying)           │
+      ▼                                 │ 5. Update Job
+┌──────────────────┐                    │    Status & History
+│ Async Worker Loop│ ───────────────────┘
+└─────┬────────────┘
+      │ 4. Executes HTTP Call
+      ▼
+┌──────────────────┐
+│   External API   │
+└─────┬────────────┘
+      │
+      ├─► [ 200 OK ] ──────► Mark COMPLETED
+      │
+      ├─► [ 5xx/Timeout ] ─► Calc Backoff + Jitter
+      │                      (Set nextRetryAt)
+      │
+      └─► [ 4xx Error ] ───► Mark FAILED
+                             (Dead-letter)
 
 ## Backoff & Jitter
 
