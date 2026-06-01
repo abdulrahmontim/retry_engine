@@ -30,27 +30,43 @@ curl -X GET "http://127.0.0.1:8000/requests?status=failed"
 
 ## Architecture
 
-┌────────────┐                                     ┌─────────────────────┐
-│   Client   │                                     │    External API     │
-└─┬───┬───┬──┘                                     └──────────▲──────────┘
-  │   │   │                                                   │
-  │   │   │                                            4. HTTP Request
-  │   │   │                                                   │
-  │   │   └─────────────────┐                                 │
-  │   │ GET /requests       │ POST /request                   │
-  │   │ GET /requests/:id   │                                 │
-  ▼   ▼                     ▼                                 ▼
-┌───────────────────────────────────┐              ┌─────────────────────┐
-│          FastAPI Router           │              │  Async Worker Loop  │
-└─┬───────────────────────────────┬─┘              └─┬─────────────────┬─┘
-  │                               │                  │                 │
-  │ Read State & Attempts         │ Insert PENDING   │ Poll due rows   │ Update Status
-  │                               │                  │ (Every 500ms)   │ (Backoff logic)
-  ▼                               ▼                  ▼                 ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                            SQLite Database                             │
-│                    (Requests & AttemptHistory tables)                  │
-└────────────────────────────────────────────────────────────────────────┘
+flowchart TD
+    Client([Client])
+
+    subgraph FastAPI [Synchronous Web Server]
+        RoutePost[POST /request]
+        RouteGetId[GET /requests/:id]
+        RouteGetStat[GET /requests?status=...]
+    end
+
+    subgraph Storage [Persistence]
+        DB[(SQLite Database)]
+    end
+
+    subgraph Background [Asynchronous Engine]
+        Worker{Worker Loop \n Wakes ~500ms}
+        ExtAPI[External API]
+    end
+
+    %% Client Interactions
+    Client -->|1. Submit Job| RoutePost
+    Client -->|Check Status & History| RouteGetId
+    Client -->|List by Status| RouteGetStat
+
+    %% API to Database
+    RoutePost -->|Save PENDING state| DB
+    RouteGetId -->|Read state & attempts| DB
+    RouteGetStat -->|Read filtered rows| DB
+
+    %% Worker Flow
+    Worker -.->|2. Poll due rows| DB
+    Worker -->|3. Execute HTTP Call| ExtAPI
+    ExtAPI -->|4. Response| Worker
+
+    %% Worker Updates Database
+    Worker -->|200 OK: Mark COMPLETED| DB
+    Worker -->|5xx/Timeout: Calc Backoff+Jitter \n Update nextRetryAt| DB
+    Worker -->|4xx or MaxRetries: Mark FAILED| DB
 
 ## Backoff & Jitter
 
