@@ -30,6 +30,7 @@ curl -X GET "http://127.0.0.1:8000/requests?status=failed"
 
 ## Architecture
 
+```mermaid
 flowchart TD
     Client([Client])
 
